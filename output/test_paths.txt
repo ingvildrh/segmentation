@@ -1,0 +1,4 @@
+C:/Users/ingvilrh/OneDrive - NTNU/Masteroppgave23/fishForUNETtut/tail_UNET1/train_images/00001.png
+C:/Users/ingvilrh/OneDrive - NTNU/Masteroppgave23/fishForUNETtut/tail_UNET1/train_images/00018.png
+C:/Users/ingvilrh/OneDrive - NTNU/Masteroppgave23/fishForUNETtut/tail_UNET1/train_images/00016.png
+C:/Users/ingvilrh/OneDrive - NTNU/Masteroppgave23/fishForUNETtut/tail_UNET1/train_images/00002.png
