@@ -8,8 +8,8 @@ import os
 # base path of the dataset
 #DATASET_PATH = os.path.join("dataset", "train")
 # define the path to the images and masks dataset
-IMAGE_DATASET_PATH = "C:/Users/ingvilrh/OneDrive - NTNU/Masteroppgave23/fishForUNETtut/tail_UNET1/train_images/"
-MASK_DATASET_PATH = "C:/Users/ingvilrh/OneDrive - NTNU/Masteroppgave23/fishForUNETtut/tail_UNET1/train_masks/"
+IMAGE_DATASET_PATH = "C:/Users/ingvilrh/OneDrive - NTNU/Masteroppgave23/eyeDetection/images"
+MASK_DATASET_PATH = "C:/Users/ingvilrh/OneDrive - NTNU/Masteroppgave23/eyeDetection/masks"
 # define the test split
 TEST_SPLIT = 0.15
 # determine the device to be used for training and evaluation

@@ -23,17 +23,17 @@ maskPaths = sorted(list(paths.list_images(MASK_DATASET_PATH)))
 
 
 # partition the data into training and testing splits using 85% of
-# the data for training and the remaining 15% for testing
+# the data for training and the remaining 20% for validation
 split = train_test_split(imagePaths, maskPaths, test_size=0.2, random_state=42)
 # unpack the data split
-(trainImages, testImages) = split[:2]
+(trainImages, valImages) = split[:2]
 
-(trainMasks, testMasks) = split[2:]
+(trainMasks, valMasks) = split[2:]
 # write the testing image paths to disk so that we can use then
 # when evaluating/testing our model
 #print("[INFO] saving testing image paths...")
 f = open(TEST_PATHS, "w")
-f.write("\n".join(testImages))
+f.write("\n".join(valImages))
 f.close()
 #DETTE BETYR AT MAN BRUKER FINAL TESTING PÅ SAMME DATA SOM INITIAL TESTING FRA START, SOM ER VELDIG RART
 
@@ -43,22 +43,22 @@ transforms = transforms.Compose([transforms.ToPILImage(),
 	                            transforms.ToTensor()])
 
 
-# create the train and test datasets
+# create the train and validation datasets
 trainDS = SegmentationDataset(imagePaths=trainImages, maskPaths=trainMasks,
 	transforms=transforms)
 
-testDS = SegmentationDataset(imagePaths=testImages, maskPaths=testMasks,
+valDS = SegmentationDataset(imagePaths=valImages, maskPaths=valMasks,
     transforms=transforms)
 
-#print(f"[INFO] found {len(trainDS)} examples in the training set...")
-#print(f"[INFO] found {len(testDS)} examples in the test set...")
+print(f"[INFO] found {len(trainDS)} examples in the training set...")
+print(f"[INFO] found {len(valDS)} examples in the validation set...")
 # create the training and test data loaders
 
 trainLoader = DataLoader(trainDS, shuffle=True,
 	batch_size=BATCH_SIZE, pin_memory=PIN_MEMORY,
 	num_workers=os.cpu_count())
 
-testLoader = DataLoader(testDS, shuffle=False,
+valLoader = DataLoader(valDS, shuffle=False,
 	batch_size=BATCH_SIZE, pin_memory=PIN_MEMORY,
 	num_workers=os.cpu_count())
 
@@ -70,9 +70,9 @@ lossFunc = BCEWithLogitsLoss()
 opt = Adam(unet.parameters(), lr=INIT_LR)
 # calculate steps per epoch for training and test set
 trainSteps = len(trainDS) // BATCH_SIZE
-testSteps = len(testDS) // BATCH_SIZE
+valSteps = len(valDS) // BATCH_SIZE
 # initialize a dictionary to store training history
-H = {"train_loss": [], "test_loss": []}
+H = {"train_loss": [], "validation_loss": []}
 
 
 def main():
@@ -82,7 +82,7 @@ def main():
     for e in tqdm(range(NUM_EPOCHS)):
         # initialize the total training and validation loss
         totalTrainLoss = 0
-        totalTestLoss = 0
+        totalValLoss = 0
         # loop over the training set
         for (i, (x, y)) in enumerate(trainLoader):
             # set the model in training mode
@@ -113,26 +113,26 @@ def main():
             # set the model in evaluation mode
             unet.eval()
             # loop over the validation set
-            for (x, y) in testLoader:
+            for (x, y) in valLoader:
                 # send the input to the device
                 (x, y) = (x.to(DEVICE), y.to(DEVICE))
                 # make the predictions and calculate the validation loss
                 pred = unet(x)
-                totalTestLoss += lossFunc(pred, y)
+                totalValLoss += lossFunc(pred, y)
         # calculate the average training and validation loss
         avgTrainLoss = totalTrainLoss / trainSteps #her deler jeg med NULL OG DET VIL JEG IKKE
-        avgTestLoss = totalTestLoss / testSteps
+        avgValLoss = totalValLoss / valSteps
         print("train steps", trainSteps)
-        print("test steps", testSteps)
+        print("val steps", valSteps)
         print("avgerage Train loss", avgTrainLoss)
-        print("average test loss", avgTestLoss)
+        print("average val loss", avgValLoss)
         # update our training history
         H["train_loss"].append(avgTrainLoss.cpu().detach().numpy())
-        H["test_loss"].append(avgTestLoss.cpu().detach().numpy())
+        H["validation_loss"].append(avgValLoss.cpu().detach().numpy())
         # print the model training and validation information
         print("[INFO] EPOCH: {}/{}".format(e + 1, NUM_EPOCHS))
-        print("Train loss: {:.6f}, Test loss: {:.4f}".format(
-            avgTrainLoss, avgTestLoss))
+        print("Train loss: {:.6f}, Validation loss: {:.4f}".format(
+            avgTrainLoss, avgValLoss))
     # display the total time needed to perform the training
     endTime = time.time()
     print("[INFO] total time taken to train the model: {:.2f}s".format(
@@ -145,7 +145,7 @@ def main():
     plt.style.use("ggplot")
     plt.figure()
     plt.plot(H["train_loss"], label="train_loss")
-    plt.plot(H["test_loss"], label="test_loss")
+    plt.plot(H["validation_loss"], label="validation_loss")
     plt.title("Training Loss on Dataset")
     plt.xlabel("Epoch #")
     plt.ylabel("Loss")
