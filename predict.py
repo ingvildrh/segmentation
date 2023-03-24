@@ -12,7 +12,7 @@ NEVER_SEEN = 0
 
 def prepare_plot(origImage, origMask, predMask):
 	# initialize our figure
-	figure, ax = plt.subplots(nrows=1, ncols=3, figsize=(15, 15))
+	figure, ax = plt.subplots(nrows=1, ncols=3, figsize=(10, 10))
 	# plot the original image, its mask, and the predicted mask
 	ax[0].imshow(origImage)
 	ax[1].imshow(origMask)
@@ -80,6 +80,23 @@ unet = torch.load(MODEL_PATH).to(DEVICE)
 #     # make predictions and visualize the results
 #     make_predictions(unet, path)
 
+def plot_histogram(img):
+	# tuple to select colors of each channel line
+    colors = ("red", "green", "blue")
+
+    # create the histogram plot, with three lines, one for
+    # each color
+    plt.figure()
+    plt.xlim([0, 256])
+    for channel_id, color in enumerate(colors):
+        histogram, bin_edges = np.histogram(
+            img[:, :, channel_id], bins=256, range=(0, 256)
+        )
+        plt.plot(bin_edges[0:-1], histogram, color=color)
+
+    plt.title("Color Histogram")
+    plt.xlabel("Color value")
+    plt.ylabel("Pixel count")
 
 def make_my_preds(model, imagePath, maskPath):
 	model.eval()
@@ -91,12 +108,14 @@ def make_my_preds(model, imagePath, maskPath):
 			image = image.astype("float32") / 255.0
 			image = cv2.resize(image, (INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT))
 			orig = image.copy()
-			filename = imagePath.split("/")[-1]
+			
+
 			groundTruthMask = (maskPath + "/" + filename)
-			print(groundTruthMask)
 			gtMask = cv2.imread(groundTruthMask, 0)
-			gtMask = cv2.resize(gtMask, (INPUT_IMAGE_HEIGHT,
-                    INPUT_IMAGE_HEIGHT))
+			gtMask = cv2.resize(gtMask, (INPUT_IMAGE_HEIGHT,INPUT_IMAGE_HEIGHT))
+			cv2.imshow("wind", gtMask)
+			cv2.waitKey(0)
+
 			image = np.transpose(image, (2, 0, 1))
 			image = np.expand_dims(image, 0)
 			image = torch.from_numpy(image).to(DEVICE)
@@ -105,7 +124,60 @@ def make_my_preds(model, imagePath, maskPath):
 			predMask = predMask.cpu().numpy()
 			predMask = (predMask * 255)
 			predMask = predMask.astype(np.uint8)
+			cv2.imshow("window", predMask)
+			cv2.waitKey(0)
+			intersection = np.logical_and(gtMask, predMask)
+			union = np.logical_or(gtMask, predMask)
+			iou_score = np.sum(intersection) / np.sum(union)
+			print("IOU SCORE: ", iou_score) #intersection over union
 			prepare_plot(orig, gtMask, predMask)
+	
+	# model.eval()
+	# for filename in os.listdir(imagePath):
+	# 	with torch.no_grad():
+	# 		path = (imagePath + "/" + filename)
+	# 		print(filename)
+	# 		image = cv2.imread(path)
+	# 		image = image.astype("float32") / 255.0
+	# 		image = cv2.resize(image, (INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT))
+	# 		orig = image.copy()
+			
+
+	# 		groundTruthMask = (maskPath + "/" + filename)
+	# 		gtMask = cv2.imread(groundTruthMask,0)
+	# 		gtMask = cv2.resize(gtMask, (INPUT_IMAGE_HEIGHT,INPUT_IMAGE_HEIGHT))
+			
+    #         #Showing the binary mask
+	# 		cv2.imshow("wind",gtMask)
+	# 		cv2.waitKey(0)
+			
+	# 		image = np.transpose(image, (2, 0, 1))
+	# 		image = np.expand_dims(image, 0)
+	# 		image = torch.from_numpy(image).to(DEVICE)
+	# 		predMask = model(image).squeeze()
+			
+			
+	# 		print("The maximum value of the predictions of the model: ", torch.max(predMask))
+	# 		print("The minimum value of the predictions from the model: ", torch.min(predMask))
+	# 		predMask = torch.sigmoid(predMask)
+	# 		print("The maximum value of the predictions of the model after scaling: " ,torch.max(predMask))
+	# 		print("The minimum value of the predictions of the model after scaling: " ,torch.min(predMask))
+	# 		predMask = predMask.cpu().numpy()
+	# 		predMask = (predMask) * 255
+	# 		predMask = predMask.astype(np.uint8)
+			
+    #         #Showing the predicted mask after scaling
+	# 		cv2.imshow("win", predMask)
+	# 		cv2.waitKey(0)
+			
+    #         #Evaluation metrics
+	# 		intersection = np.logical_and(gtMask, predMask)
+	# 		union = np.logical_or(gtMask, predMask)
+	# 		iou_score = np.sum(intersection) / np.sum(union)
+	# 		print("IOU SCORE: ", iou_score) #intersection over union
+			
+    #         #Plot the originals, masks and predictions
+	# 		prepare_plot(orig, gtMask, predMask)
             
 		
 testImgPath = "C:/Users/ingvilrh/OneDrive - NTNU/Masteroppgave23/eyeDetection/testImg"
