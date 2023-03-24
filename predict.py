@@ -124,6 +124,7 @@ def make_my_preds(model, imagePath, maskPath):
 			predMask = predMask.cpu().numpy()
 			predMask = (predMask * 255)
 			predMask = predMask.astype(np.uint8)
+			#ret, tresh = cv2.threshold(predMask, 1,255,0) creating a threshold value so I can see a binary plot of the mask
 			cv2.imshow("window", predMask)
 			cv2.waitKey(0)
 			intersection = np.logical_and(gtMask, predMask)
@@ -132,52 +133,7 @@ def make_my_preds(model, imagePath, maskPath):
 			print("IOU SCORE: ", iou_score) #intersection over union
 			prepare_plot(orig, gtMask, predMask)
 	
-	# model.eval()
-	# for filename in os.listdir(imagePath):
-	# 	with torch.no_grad():
-	# 		path = (imagePath + "/" + filename)
-	# 		print(filename)
-	# 		image = cv2.imread(path)
-	# 		image = image.astype("float32") / 255.0
-	# 		image = cv2.resize(image, (INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT))
-	# 		orig = image.copy()
-			
 
-	# 		groundTruthMask = (maskPath + "/" + filename)
-	# 		gtMask = cv2.imread(groundTruthMask,0)
-	# 		gtMask = cv2.resize(gtMask, (INPUT_IMAGE_HEIGHT,INPUT_IMAGE_HEIGHT))
-			
-    #         #Showing the binary mask
-	# 		cv2.imshow("wind",gtMask)
-	# 		cv2.waitKey(0)
-			
-	# 		image = np.transpose(image, (2, 0, 1))
-	# 		image = np.expand_dims(image, 0)
-	# 		image = torch.from_numpy(image).to(DEVICE)
-	# 		predMask = model(image).squeeze()
-			
-			
-	# 		print("The maximum value of the predictions of the model: ", torch.max(predMask))
-	# 		print("The minimum value of the predictions from the model: ", torch.min(predMask))
-	# 		predMask = torch.sigmoid(predMask)
-	# 		print("The maximum value of the predictions of the model after scaling: " ,torch.max(predMask))
-	# 		print("The minimum value of the predictions of the model after scaling: " ,torch.min(predMask))
-	# 		predMask = predMask.cpu().numpy()
-	# 		predMask = (predMask) * 255
-	# 		predMask = predMask.astype(np.uint8)
-			
-    #         #Showing the predicted mask after scaling
-	# 		cv2.imshow("win", predMask)
-	# 		cv2.waitKey(0)
-			
-    #         #Evaluation metrics
-	# 		intersection = np.logical_and(gtMask, predMask)
-	# 		union = np.logical_or(gtMask, predMask)
-	# 		iou_score = np.sum(intersection) / np.sum(union)
-	# 		print("IOU SCORE: ", iou_score) #intersection over union
-			
-    #         #Plot the originals, masks and predictions
-	# 		prepare_plot(orig, gtMask, predMask)
             
 		
 testImgPath = "C:/Users/ingvilrh/OneDrive - NTNU/Masteroppgave23/eyeDetection/testImg"
