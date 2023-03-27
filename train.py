@@ -2,7 +2,6 @@
 # python train.py
 # import the necessary packages
 from dataset import SegmentationDataset
-from model import UNet
 from config import *
 from torch.nn import BCEWithLogitsLoss
 from torch.optim import Adam
@@ -15,6 +14,8 @@ import matplotlib.pyplot as plt
 import torch
 import time
 import os
+
+
 
 
 # load the image and mask filepaths in a sorted manner
@@ -38,20 +39,26 @@ f.close()
 #DETTE BETYR AT MAN BRUKER FINAL TESTING PÅ SAMME DATA SOM INITIAL TESTING FRA START, SOM ER VELDIG RART
 
 # define transformations
-transforms = transforms.Compose([transforms.ToPILImage(),
+if NET == "UNET":
+    transform = transforms.Compose([transforms.ToPILImage(), 
+ 	                            transforms.Resize((INPUT_IMAGE_HEIGHT, INPUT_IMAGE_WIDTH)),
+	                            transforms.ToTensor()])
+
+if NET == "UNET2":
+    transform2 = transforms.Compose([transforms.ToPILImage(), transforms.Grayscale(num_output_channels=1),
  	                            transforms.Resize((INPUT_IMAGE_HEIGHT, INPUT_IMAGE_WIDTH)),
 	                            transforms.ToTensor()])
 
 
 # create the train and validation datasets
 trainDS = SegmentationDataset(imagePaths=trainImages, maskPaths=trainMasks,
-	transforms=transforms)
+	transforms=transform)
 
 valDS = SegmentationDataset(imagePaths=valImages, maskPaths=valMasks,
-    transforms=transforms)
+    transforms=transform)
 
-print(f"[INFO] found {len(trainDS)} examples in the training set...")
-print(f"[INFO] found {len(valDS)} examples in the validation set...")
+#print(f"[INFO] found {len(trainDS)} examples in the training set...")
+#print(f"[INFO] found {len(valDS)} examples in the validation set...")
 # create the training and test data loaders
 
 trainLoader = DataLoader(trainDS, shuffle=True,
@@ -63,8 +70,7 @@ valLoader = DataLoader(valDS, shuffle=False,
 	num_workers=os.cpu_count())
 
 
-# initialize our UNet model
-unet = UNet().to(DEVICE)
+
 # initialize loss function and optimizer
 lossFunc = BCEWithLogitsLoss()
 opt = Adam(unet.parameters(), lr=INIT_LR)
@@ -77,7 +83,7 @@ H = {"train_loss": [], "validation_loss": []}
 
 def main():
     # loop over epochs
-    print("[INFO] training the network...")
+    print("[INFO] training the network...", NET)
     startTime = time.time()
     for e in tqdm(range(NUM_EPOCHS)):
         # initialize the total training and validation loss
@@ -106,8 +112,8 @@ def main():
             opt.step()
             # add the loss to the total training loss so far
             totalTrainLoss += loss
-            print("loss:", loss)
-            print("total train loss:", totalTrainLoss)
+            #print("loss:", loss)
+            #print("total train loss:", totalTrainLoss)
         # switch off autograd
         with torch.no_grad():
             # set the model in evaluation mode

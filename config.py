@@ -1,10 +1,12 @@
 '''
 This is from https://pyimagesearch.com/2021/11/08/u-net-training-image-segmentation-models-in-pytorch/
 '''
-
 # import the necessary packages
 import torch
 import os
+from model import UNet
+from modelUnet2 import UNET
+
 # base path of the dataset
 #DATASET_PATH = os.path.join("dataset", "train")
 # define the path to the images and masks dataset
@@ -37,7 +39,22 @@ THRESHOLD = 0.5
 BASE_OUTPUT = "output"
 # define the path to the output serialized model, model training
 # plot, and testing image paths
-MODEL_PATH = os.path.join(BASE_OUTPUT, "unet_tails.pth")
+
+#Set what network to train/predict 
+#UNET for the network in model.py
+#UNET2 for the network in modelUnet2.py
+
+NET = "UNET"
+
+
+if NET == "UNET":
+    MODEL_PATH = os.path.join(BASE_OUTPUT, "unet_tails.pth")
+    unet = UNet().to(DEVICE)
+if NET == "UNET2":
+    MODEL_PATH = os.path.join(BASE_OUTPUT, "unet_tails2.pth")
+    unet = UNET(1,1).to(DEVICE)
+
+
 PLOT_PATH = os.path.sep.join([BASE_OUTPUT, "plot.png"])
 TEST_PATHS =  "output/test_paths.txt"
 

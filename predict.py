@@ -7,8 +7,12 @@ import numpy as np
 import torch
 import cv2
 import os
+from train import *
+from torchvision import transforms
+from PIL import Image
 
 NEVER_SEEN = 0
+
 
 def prepare_plot(origImage, origMask, predMask):
 	# initialize our figure
@@ -25,48 +29,6 @@ def prepare_plot(origImage, origMask, predMask):
 	figure.tight_layout()
 	plt.show()
 	
-
-def make_predictions(model, imagePath):
-	# set model to evaluation mode
-	model.eval()
-	# turn off gradient tracking
-	with torch.no_grad():
-		# load the image from disk, swap its color channels, cast it
-		# to float data type, and scale its pixel values
-		image = cv2.imread(imagePath)
-		image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-		image = image.astype("float32") / 255.0
-		# resize the image and make a copy of it for visualization
-		image = cv2.resize(image, (INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT))
-		orig = image.copy()
-		# find the filename and generate the path to ground truth
-		# mask
-		filename = imagePath.split("/")[-1]
-		groundTruthPath = MASK_DATASET_PATH + "/" + filename
-		if NEVER_SEEN: 
-			gtMask = np.zeros((INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT, 3), dtype = np.uint8)
-		else:
-			gtMask = cv2.imread(groundTruthPath, 0)
-			gtMask = cv2.resize(gtMask, (INPUT_IMAGE_HEIGHT,
-                INPUT_IMAGE_HEIGHT))
-		image = np.transpose(image, (2, 0, 1))
-		image = np.expand_dims(image, 0)
-		image = torch.from_numpy(image).to(DEVICE)
-		# make the prediction, pass the results through the sigmoid
-		# function, and convert the result to a NumPy array
-		predMask = model(image).squeeze()
-		predMask = torch.sigmoid(predMask)
-		predMask = predMask.cpu().numpy()
-		# filter out the weak predictions and convert them to integers
-		predMask2 = predMask*255
-		predMask3 = predMask*255
-		predMask = (predMask > 1) * 255 #predMask*255 #(predMask > 0.5) * 255
-		predMask2 = (predMask2 > 7)
-		predMask2 = predMask2.astype(np.uint8)
-		predMask = predMask.astype(np.uint8)
-		predMask3 = predMask3.astype(np.uint8)
-		# prepare a plot for visualization
-		prepare_plot(orig, gtMask, predMask3)
 		
 NEVER_SEEN_PATH = "output/never_seen.txt"
 print("[INFO] loading up test image paths...")
@@ -74,29 +36,9 @@ print("[INFO] loading up test image paths...")
 imagePaths = open(NEVER_SEEN_PATH).read().strip().split("\n")
 imagePaths = np.random.choice(imagePaths, size=10)
 print("[INFO] load up model...")
+
 unet = torch.load(MODEL_PATH).to(DEVICE)
-# iterate over the randomly selected test image paths
-# for path in imagePaths:
-#     # make predictions and visualize the results
-#     make_predictions(unet, path)
 
-def plot_histogram(img):
-	# tuple to select colors of each channel line
-    colors = ("red", "green", "blue")
-
-    # create the histogram plot, with three lines, one for
-    # each color
-    plt.figure()
-    plt.xlim([0, 256])
-    for channel_id, color in enumerate(colors):
-        histogram, bin_edges = np.histogram(
-            img[:, :, channel_id], bins=256, range=(0, 256)
-        )
-        plt.plot(bin_edges[0:-1], histogram, color=color)
-
-    plt.title("Color Histogram")
-    plt.xlabel("Color value")
-    plt.ylabel("Pixel count")
 
 def make_my_preds(model, imagePath, maskPath):
 	model.eval()
@@ -134,11 +76,39 @@ def make_my_preds(model, imagePath, maskPath):
 			prepare_plot(orig, gtMask, predMask)
 	
 
-            
+def predict_unet2(testImgPath, maskImgPath, model):
+	testImgPath = sorted(list(paths.list_images(testImgPath)))
+	maskImgPath = sorted(list(paths.list_images(maskImgPath)))
+	testDS = SegmentationDataset(testImgPath, maskImgPath, transform)
+	testLoader = DataLoader(testDS, shuffle=True,
+	batch_size=2, pin_memory=PIN_MEMORY)
+	model.eval()
+	length = testDS.__len__()
+	for i in range(length):
+		img, msk = testDS.__getitem__(i)
+		img, mask = img.to(DEVICE), msk.to(DEVICE)
+		img = img.unsqueeze(0)
+		pred = model(img)
+		pred = torch.sigmoid(pred)
 		
+		pred = pred*255
+		pred = pred.detach().cpu().numpy()
+		pred = pred.reshape(256,256)
+
+		prepare_plot((img.reshape(256,256)).cpu(), (mask.reshape(256,256).cpu()), pred)
+	
+
+
 testImgPath = "C:/Users/ingvilrh/OneDrive - NTNU/Masteroppgave23/eyeDetection/testImg"
 maskImgPath = "C:/Users/ingvilrh/OneDrive - NTNU/Masteroppgave23/eyeDetection/testMasks"
 
-make_my_preds(unet, testImgPath, maskImgPath)
+def main():
+    if NET == "UNET2":
+        predict_unet2(testImgPath, maskImgPath, unet)
+    if NET == "UNET":
+        make_my_preds(unet, testImgPath, maskImgPath)
+#make_my_preds(unet, testImgPath, maskImgPath)
 		
 	
+if __name__ == "__main__":
+    main()
